@@ -2,21 +2,21 @@
 include __DIR__ . '/kses.php';
 
 class KsesTests {
-	private $_num_tests = 1000;
+	public $num_tests = 1000;
 
-	private $_data = array();
+	public $data = array();
 
-	private $_results = array();
+	public $results = array();
 
 	public function __construct( $num_tests = 1000 ) {
-		$this->_num_tests = $num_tests;
+		$this->num_tests = $num_tests;
 	}
 
 	public function run_tests() {
 		$tests = array( 'long', 'medium', 'short' );
 
 		foreach ( $tests as $test ) {
-			$this->run_test( $this->_num_tests, $test );
+			$this->run_test( $this->num_tests, $test );
 		}
 	}
 
@@ -25,48 +25,72 @@ class KsesTests {
 		$results = array();
 
 		foreach ( $tests as $test ) {
-			$results[ $test ] = array_sum( $this->_data[ $test ] ) / count( $this->_data[ $test ] );
+			$results[ $test ] = array(
+				'mean'   => $this->get_mean( $this->data[ $test ] ),
+				'median' => $this->get_median( $this->data[ $test ] ),
+				'min'    => $this->get_min( $this->data[ $test ] ),
+				'max'    => $this->get_max( $this->data[ $test ] ),
+			);
 		}
 
 		return $results;
 	}
 
 	public function get_results() {
-		if ( empty( $this->_results ) ) {
-			$this->_results = $this->calculate_results();
+		if ( empty( $this->results ) ) {
+			$this->results = $this->calculate_results();
 		}
 
-		return $this->_results;
+		return $this->results;
 	}
 
 	public function run_test( $n, $type ) {
-		$text = call_user_func( array( $this, '_get_' . $type . '_text' ) );
+		$text = call_user_func( array( $this, 'get_' . $type . '_text' ) );
 
 		for ( $i = 0; $i < $n; $i++ ) {
-			$start = $this->_start_timer();
+			$start = $this->start_timer();
 			wp_kses( $text, 'post' );
-			$stop = $this->_stop_timer();
-			$this->_add_result( $type, $this->_get_elapsed_time( $start, $stop ) );
+			$stop = $this->stop_timer();
+			$this->add_result( $type, $this->get_elapsed_time( $start, $stop ) );
 		}
 	}
 
-	private function _start_timer() {
+	public function start_timer() {
 		return microtime( true );
 	}
 
-	private function _stop_timer() {
+	public function stop_timer() {
 		return microtime( true );
 	}
 
-	private function _get_elapsed_time( $start, $stop ) {
+	public function get_elapsed_time( $start, $stop ) {
 		return $stop - $start;
 	}
 
-	private function _add_result( $bucket, $result ) {
-		$this->_data[ $bucket ][] = $result;
+	public function add_result( $bucket, $result ) {
+		$this->data[ $bucket ][] = $result;
 	}
 
-	private function _get_long_text() {
+	public function get_mean( $array ) {
+		return array_sum( $array ) / count( $array );
+	}
+
+	public function get_median( $array ) {
+		rsort( $array );
+		$middle = (int) round( count( $array ) / 2 );
+
+		return $array[ $middle - 1 ];
+	}
+
+	public function get_max( $array ) {
+		return max( $array );
+	}
+
+	public function get_min( $array ) {
+		return min( $array );
+	}
+
+	public function get_long_text() {
 		ob_start(); ?>
 		<div class="contentPad article"><!-- headline, byline, etc --><h1 style="visibility: visible; display: block;">Shaw, Blackhawks defeat Coyotes; Kane scores 200th</h1><div class="pubDateLocation">Tuesday, 01.20.2015 / 10:19 PM</div><h3 class="newsByLine"><a class="undMe" shape="rect" href="http://blackhawks.nhl.com/club/newsindex.htm?view=headline&amp;author=2818">Brian Hedger</a>&nbsp;-&nbsp;NHL.com Correspondent</h3><!-- authorAvailable --><link href="http://cdn.nhle.com/projects/ui-t5/com.nhl.ui.t5.components.share/SocialShareBar/dist/css/_SocialShareBar.min.css?v=8.14" media="screen" rel="stylesheet" type="text/css"><script>
 				var modalMessages = {
@@ -282,7 +306,7 @@ class KsesTests {
 		return ob_get_clean();
 	}
 
-	private function _get_medium_text() {
+	public function get_medium_text() {
 		ob_start(); ?>
 		<table width="100%" cellspacing="0" cellpadding="4" class="data">
 			<tbody>
@@ -322,7 +346,7 @@ class KsesTests {
 		return ob_get_clean();
 	}
 
-	private function _get_short_text() {
+	public function get_short_text() {
 		ob_start(); ?>
 		<p><a href="#" class="yolo">Yolo</a></p>
 		<?php
