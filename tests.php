@@ -50,7 +50,7 @@ class KsesTests {
 
 		for ( $i = 0; $i < $n; $i++ ) {
 			$start = $this->start_timer();
-			wp_kses( $text, 'post' );
+			esc_html( $text );
 			$stop = $this->stop_timer();
 			$this->add_result( $type, $this->get_elapsed_time( $start, $stop ) );
 		}
