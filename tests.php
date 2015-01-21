@@ -30,6 +30,7 @@ class KsesTests {
 				'median' => $this->get_median( $this->data[ $test ] ),
 				'min'    => $this->get_min( $this->data[ $test ] ),
 				'max'    => $this->get_max( $this->data[ $test ] ),
+				'sd'     => $this->get_standard_deviation( $this->data[ $test ] ),
 			);
 		}
 
@@ -81,6 +82,15 @@ class KsesTests {
 
 		return $array[ $middle - 1 ];
 	}
+
+	public function get_standard_deviation( $array ){
+		return sqrt( array_sum( array_map( array( $this, 'get_sd_square' ), $array, array_fill( 0, count( $array ), ( array_sum( $array ) / count( $array ) ) ) ) ) / ( count( $array ) - 1 ) );
+	}
+
+	function get_sd_square( $x, $mean ) {
+		return pow( $x - $mean, 2 );
+	}
+
 
 	public function get_max( $array ) {
 		return max( $array );
