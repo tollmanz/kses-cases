@@ -1,4 +1,6 @@
 <?php
+ini_set( 'max_execution_time', 0 );
+
 include __DIR__ . '/kses.php';
 
 class KsesTests {
@@ -22,19 +24,26 @@ class KsesTests {
 
 	public function calculate_results() {
 		$tests = array( 'long', 'medium', 'short' );
+		$funcs = array( 'wp_kses-post', 'esc_html', 'esc_attr' );
 		$results = array();
 
 		foreach ( $tests as $test ) {
-			$results[ $test ] = array(
-				'mean'   => $this->get_mean( $this->data[ $test ] ),
-				'median' => $this->get_median( $this->data[ $test ] ),
-				'min'    => $this->get_min( $this->data[ $test ] ),
-				'max'    => $this->get_max( $this->data[ $test ] ),
-				'sd'     => $this->get_standard_deviation( $this->data[ $test ] ),
-			);
+			foreach ( $funcs as $func ) {
+				$results[ $func ][ $test ] = array(
+					'mean'   => $this->format( $this->get_mean( $this->data[ $func ][ $test ] ) ),
+					'median' => $this->format( $this->get_median( $this->data[ $func ][ $test ] ) ),
+					'min'    => $this->format( $this->get_min( $this->data[ $func ][ $test ] ) ),
+					'max'    => $this->format( $this->get_max( $this->data[ $func ][ $test ] ) ),
+					'sd'     => $this->format( $this->get_standard_deviation( $this->data[ $func ][ $test ] ) ),
+				);
+			}
 		}
 
 		return $results;
+	}
+
+	public function format( $num ) {
+		return sprintf( '%.10F', $num );
 	}
 
 	public function get_results() {
@@ -52,7 +61,21 @@ class KsesTests {
 			$start = $this->start_timer();
 			wp_kses( $text, 'post' );
 			$stop = $this->stop_timer();
-			$this->add_result( $type, $this->get_elapsed_time( $start, $stop ) );
+			$this->add_result( 'wp_kses-post', $type, $this->get_elapsed_time( $start, $stop ) );
+		}
+
+		for ( $i = 0; $i < $n; $i++ ) {
+			$start = $this->start_timer();
+			esc_html( $text );
+			$stop = $this->stop_timer();
+			$this->add_result( 'esc_html', $type, $this->get_elapsed_time( $start, $stop ) );
+		}
+
+		for ( $i = 0; $i < $n; $i++ ) {
+			$start = $this->start_timer();
+			esc_attr( $text );
+			$stop = $this->stop_timer();
+			$this->add_result( 'esc_attr', $type, $this->get_elapsed_time( $start, $stop ) );
 		}
 	}
 
@@ -68,8 +91,8 @@ class KsesTests {
 		return $stop - $start;
 	}
 
-	public function add_result( $bucket, $result ) {
-		$this->data[ $bucket ][] = $result;
+	public function add_result( $func, $bucket, $result ) {
+		$this->data[ $func ][ $bucket ][] = $result;
 	}
 
 	public function get_mean( $array ) {
@@ -318,47 +341,17 @@ class KsesTests {
 
 	public function get_medium_text() {
 		ob_start(); ?>
-		<table width="100%" cellspacing="0" cellpadding="4" class="data">
-			<tbody>
-			<tr class="hdr">
-				<td width="115">Player</td>
-				<td width="50">Date</td>
-				<td width="100">Due Back</td>
-				<td width="200">Injury</td>
-				<td width="280">Notes</td>
-			</tr>
-			<tr class="rwEven">
-				<td><img height="90" width="63" border="1" alt="" src="http://3.cdn.nhle.com/blackhawks/v2/photos/mugs/thumb/8471346.jpg"></td>
-				<td rowspan="2">1/1</td>
-				<td rowspan="2">1 month</td>
-				<td rowspan="2">Left hand</td>
-				<td rowspan="2">1/6: <a href="http://blackhawks.nhl.com/club/news.htm?id=747435">Had successful procedure</a></td>
-			</tr>
-			<tr class="rwEven">
-				<td>Kris Versteeg</td>
-			</tr>
-			<tr class="rwOdd">
-				<td><img height="90" width="63" border="1" alt="" src="http://3.cdn.nhle.com/blackhawks/v2/photos/mugs/thumb/8477845.jpg"></td>
-				<td rowspan="2">11/16</td>
-				<td rowspan="2">3-4 months</td>
-				<td rowspan="2">Left patella fracture</td>
-				<td rowspan="2">1/5: Expected to start rehab soon <br>
-					<br>
-					11/20: <a href="http://blackhawks.nhl.com/club/news.htm?id=740162">Had successful surgery</a></td>
-			</tr>
-			<tr class="rwOdd">
-				<td>Trevor <br>
-					van Riemsdyk</td>
-			</tr>
-			</tbody>
-		</table>
+		Chicago scored three more times in the second to <strong>make it 5-1 after 40 minutes</strong> on Kane's milestone goal at
+		3:51, Teravainen's second goal of the season at 9:42 and Shaw's second of the game3 at 19:19. Kane and
+		Terevainen put in rebounds allowed by Smith. <a href="#testing">Teravainen</a> scored off a follow of his own shot. Shaw scored
+		with a wrist shot from the slot.
 		<?php
 		return ob_get_clean();
 	}
 
 	public function get_short_text() {
 		ob_start(); ?>
-		<p><a href="#" class="yolo">Yolo</a></p>
+		This is a <em>test</em> of a sample title
 		<?php
 		return ob_get_clean();
 	}
@@ -368,4 +361,15 @@ $test = new KsesTests();
 $test->run_tests();
 $results = $test->get_results();
 
-var_dump( $results );
+foreach ( $results as $function => $data ) {
+	echo "$function: \n\n";
+
+	foreach ( $data as $length => $values ) {
+		echo "  $length\n";
+		echo "  --------\n";
+		echo "     Range: {$values['min']} - {$values['max']}\n";
+		echo "    Median: {$values['median']}\n";
+		echo "      Mean: {$values['mean']}\n";
+		echo "        SD: {$values['sd']}\n\n";
+	}
+}
