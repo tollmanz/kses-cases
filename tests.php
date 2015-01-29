@@ -24,7 +24,7 @@ class KsesTests {
 
 	public function calculate_results() {
 		$tests = array( 'long', 'medium', 'short' );
-		$funcs = array( 'wp_kses-post', 'wp_kses-p', 'esc_html', 'esc_attr' );
+		$funcs = array( 'wp_kses-post', 'wp_kses-p', 'esc_html', 'esc_attr', 'wp_strip_all_tags', 'strip_tags' );
 		$results = array();
 
 		foreach ( $tests as $test ) {
@@ -102,6 +102,20 @@ class KsesTests {
 			esc_attr( $text );
 			$stop = $this->stop_timer();
 			$this->add_result( 'esc_attr', $type, $this->get_elapsed_time( $start, $stop ) );
+		}
+
+		for ( $i = 0; $i < $n; $i++ ) {
+			$start = $this->start_timer();
+			wp_strip_all_tags( $text );
+			$stop = $this->stop_timer();
+			$this->add_result( 'wp_strip_all_tags', $type, $this->get_elapsed_time( $start, $stop ) );
+		}
+
+		for ( $i = 0; $i < $n; $i++ ) {
+			$start = $this->start_timer();
+			strip_tags( $text );
+			$stop = $this->stop_timer();
+			$this->add_result( 'strip_tags', $type, $this->get_elapsed_time( $start, $stop ) );
 		}
 	}
 
