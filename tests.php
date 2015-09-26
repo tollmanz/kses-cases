@@ -2,6 +2,7 @@
 ini_set( 'max_execution_time', 0 );
 
 include __DIR__ . '/kses.php';
+include __DIR__ . '/whitelist-html.php';
 
 class KsesTests {
 	public $num_tests = 1000;
@@ -24,7 +25,7 @@ class KsesTests {
 
 	public function calculate_results() {
 		$tests = array( 'long', 'medium', 'short' );
-		$funcs = array( 'wp_kses-post', 'wp_kses-p', 'esc_html', 'esc_attr', 'wp_strip_all_tags', 'strip_tags' );
+		$funcs = array( 'wp_kses-post', 'wp_kses-p', 'esc_html', 'esc_attr', 'wp_strip_all_tags', 'strip_tags', 'whitelist_html', 'whitelist_html_p' );
 		$results = array();
 
 		foreach ( $tests as $test ) {
@@ -55,6 +56,7 @@ class KsesTests {
 	}
 
 	public function run_test( $n, $type ) {
+		global $allowedposttags;
 		$text = call_user_func( array( $this, 'get_' . $type . '_text' ) );
 
 		for ( $i = 0; $i < $n; $i++ ) {
@@ -116,6 +118,20 @@ class KsesTests {
 			strip_tags( $text );
 			$stop = $this->stop_timer();
 			$this->add_result( 'strip_tags', $type, $this->get_elapsed_time( $start, $stop ) );
+		}
+
+		for ( $i = 0; $i < $n; $i++ ) {
+			$start = $this->start_timer();
+			whitelist_html( $text, $allowedposttags );
+			$stop = $this->stop_timer();
+			$this->add_result( 'whitelist_html', $type, $this->get_elapsed_time( $start, $stop ) );
+		}
+
+		for ( $i = 0; $i < $n; $i++ ) {
+			$start = $this->start_timer();
+			whitelist_html( $text, $p_tags );
+			$stop = $this->stop_timer();
+			$this->add_result( 'whitelist_html_p', $type, $this->get_elapsed_time( $start, $stop ) );
 		}
 	}
 
