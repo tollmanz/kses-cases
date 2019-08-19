@@ -15,6 +15,8 @@ function did_action(  ) {
 	return true;
 }
 
+define( 'CUSTOM_TAGS', false );
+
  /**
  * KSES global for default allowable HTML tags.
  *
@@ -2152,4 +2154,126 @@ function wp_strip_all_tags( $string, $remove_breaks = false ) {
 	}
 
 	return trim( $string );
+}
+
+/**
+ * Helper function listing HTML attributes containing a URL.
+ *
+ * This function returns a list of all HTML attributes that must contain
+ * a URL according to the HTML specification.
+ *
+ * This list includes URI attributes both allowed and disallowed by KSES.
+ *
+ * @link https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
+ *
+ * @since 5.0.1
+ *
+ * @return array HTML attributes that must include a URL.
+ */
+function wp_kses_uri_attributes() {
+	$uri_attributes = array(
+		'action',
+		'archive',
+		'background',
+		'cite',
+		'classid',
+		'codebase',
+		'data',
+		'formaction',
+		'href',
+		'icon',
+		'longdesc',
+		'manifest',
+		'poster',
+		'profile',
+		'src',
+		'usemap',
+		'xmlns',
+	);
+
+	/**
+	 * Filters the list of attributes that are required to contain a URL.
+	 *
+	 * Use this filter to add any `data-` attributes that are required to be
+	 * validated as a URL.
+	 *
+	 * @since 5.0.1
+	 *
+	 * @param array $uri_attributes HTML attributes requiring validation as a URL.
+	 */
+	$uri_attributes = apply_filters( 'wp_kses_uri_attributes', $uri_attributes );
+
+	return $uri_attributes;
+}
+
+/**
+ * Determines whether an attribute is allowed.
+ *
+ * @since 4.2.3
+ * @since 5.0.0 Add support for `data-*` wildcard attributes.
+ *
+ * @param string $name         The attribute name. Passed by reference. Returns empty string when not allowed.
+ * @param string $value        The attribute value. Passed by reference. Returns a filtered value.
+ * @param string $whole        The `name=value` input. Passed by reference. Returns filtered input.
+ * @param string $vless        Whether the attribute is valueless. Use 'y' or 'n'.
+ * @param string $element      The name of the element to which this attribute belongs.
+ * @param array  $allowed_html The full list of allowed elements and attributes.
+ * @return bool Whether or not the attribute is allowed.
+ */
+function wp_kses_attr_check( &$name, &$value, &$whole, $vless, $element, $allowed_html ) {
+	$allowed_attr = $allowed_html[ strtolower( $element ) ];
+
+	$name_low = strtolower( $name );
+	if ( ! isset( $allowed_attr[ $name_low ] ) || '' == $allowed_attr[ $name_low ] ) {
+		/*
+		 * Allow `data-*` attributes.
+		 *
+		 * When specifying `$allowed_html`, the attribute name should be set as
+		 * `data-*` (not to be mixed with the HTML 4.0 `data` attribute, see
+		 * https://www.w3.org/TR/html40/struct/objects.html#adef-data).
+		 *
+		 * Note: the attribute name should only contain `A-Za-z0-9_-` chars,
+		 * double hyphens `--` are not accepted by WordPress.
+		 */
+		if ( strpos( $name_low, 'data-' ) === 0 && ! empty( $allowed_attr['data-*'] ) && preg_match( '/^data(?:-[a-z0-9_]+)+$/', $name_low, $match ) ) {
+			/*
+			 * Add the whole attribute name to the allowed attributes and set any restrictions
+			 * for the `data-*` attribute values for the current element.
+			 */
+			$allowed_attr[ $match[0] ] = $allowed_attr['data-*'];
+		} else {
+			$name  = '';
+			$value = '';
+			$whole = '';
+			return false;
+		}
+	}
+
+	if ( 'style' == $name_low ) {
+		$new_value = safecss_filter_attr( $value );
+
+		if ( empty( $new_value ) ) {
+			$name  = '';
+			$value = '';
+			$whole = '';
+			return false;
+		}
+
+		$whole = str_replace( $value, $new_value, $whole );
+		$value = $new_value;
+	}
+
+	if ( is_array( $allowed_attr[ $name_low ] ) ) {
+		// there are some checks
+		foreach ( $allowed_attr[ $name_low ] as $currkey => $currval ) {
+			if ( ! wp_kses_check_attr_val( $value, $vless, $currkey, $currval ) ) {
+				$name  = '';
+				$value = '';
+				$whole = '';
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
