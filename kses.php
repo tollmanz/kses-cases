@@ -11,6 +11,10 @@ function _deprecated_argument( $arg1, $arg2 ) {
 	return true;
 }
 
+function did_action(  ) {
+	return true;
+}
+
  /**
  * KSES global for default allowable HTML tags.
  *
