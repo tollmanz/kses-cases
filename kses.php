@@ -1795,7 +1795,7 @@ function wp_check_invalid_utf8( $string, $strip = false ) {
 	// Store the site charset as a static to avoid multiple calls to get_option()
 	static $is_utf8 = null;
 	if ( ! isset( $is_utf8 ) ) {
-		$is_utf8 = in_array( get_option( 'blog_charset' ), array( 'utf8', 'utf-8', 'UTF8', 'UTF-8' ) );
+		$is_utf8 = true; // in_array( get_option( 'blog_charset' ), array( 'utf8', 'utf-8', 'UTF8', 'UTF-8' ) );
 	}
 	if ( ! $is_utf8 ) {
 		return $string;
@@ -1871,7 +1871,7 @@ function _wp_specialchars( $string, $quote_style = ENT_NOQUOTES, $charset = fals
 	if ( ! $charset ) {
 		static $_charset = null;
 		if ( ! isset( $_charset ) ) {
-			$alloptions = wp_load_alloptions();
+			$alloptions = array(); //wp_load_alloptions();
 			$_charset   = isset( $alloptions['blog_charset'] ) ? $alloptions['blog_charset'] : '';
 		}
 		$charset = $_charset;
